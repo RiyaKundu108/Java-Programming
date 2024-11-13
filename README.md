@@ -1,4 +1,70 @@
-Here's how to address each of your Salesforce reporting and dashboard requirements, including setting up monthly reports, comparative summaries, sales rep rankings, tax calculations, product sales, and dashboards.
+To meet these requirements, you’ll need to set up Salesforce permissions and licenses to control who can edit orders and manage user roles for your Marketing and Sales teams. Here's a step-by-step guide:
+
+### 1. Restricting Edit Access to Orders After Payment Is Received
+To ensure that an Order cannot be edited by Sales Reps once payment has been received, follow these steps:
+
+#### Step 1: Create a Validation Rule on the Order Object
+1. Go to **Setup** in Salesforce.
+2. In the **Object Manager**, find and select **Order**.
+3. Go to **Validation Rules** and click **New**.
+4. Name the rule (e.g., `Prevent_Order_Edit_After_Payment`).
+5. Enter the following formula to check if the Payment Received checkbox is checked and the current user is a Sales Rep:
+
+   ```javascript
+   AND(
+       ISCHANGED(Payment_Received__c),
+       $Profile.Name = "Sales Rep",
+       Payment_Received__c = TRUE
+   )
+   ```
+
+6. In the **Error Message** section, add a user-friendly error message (e.g., "You cannot edit this Order because payment has been received.").
+7. Click **Save**.
+
+This validation rule will prevent Sales Reps from editing Orders once the payment has been received.
+
+#### Step 2: Update Field-Level Security if Necessary
+Make sure that the **Payment Received** checkbox has restricted edit access for Sales Reps if needed. You can set this under **Field-Level Security** in the Order object fields.
+
+### 2. Assigning User Roles and Permissions for Marketing and Sales Teams
+
+#### Step 1: Define Roles in the Role Hierarchy
+1. Go to **Setup** and search for **Roles**.
+2. Click on **Set Up Roles** and define roles based on your organizational hierarchy. Common roles might include:
+   - **Marketing**
+   - **Sales**
+3. For each role, click **Add Role** and fill out details, assigning each role to the appropriate level in the hierarchy.
+4. Assign users to these roles based on their job functions.
+
+#### Step 2: Create Profiles for Marketing and Sales
+1. Go to **Setup** and search for **Profiles**.
+2. Clone existing profiles or create new ones tailored to each team:
+   - **Marketing Profile** (for managing Campaigns)
+   - **Sales Profile** (for managing Orders and generating Invoices)
+3. Adjust object permissions on each profile:
+   - For the **Marketing Profile**, enable **Read, Create, and Edit** permissions on **Campaigns**.
+   - For the **Sales Profile**, enable **Read, Create, Edit** permissions on **Orders** (without Delete) and **Invoices**.
+
+#### Step 3: Update Field Permissions
+1. Go to each object (e.g., **Order** and **Invoice**), and for each profile, set the required field-level security.
+2. Ensure that **Sales Reps** have **Read-only** access to certain fields (like **Payment Received** on Orders) as needed.
+
+### 3. Assign Licenses to Users
+Follow these steps to assign appropriate licenses to the Marketing and Sales teams.
+
+#### Step 1: Assign Licenses in Salesforce
+1. Go to **Setup** and search for **Users**.
+2. Select the user you want to assign a license to and click **Edit**.
+3. In the **User License** field, select the correct license type for each user:
+   - **Salesforce License**: Assign this license to users who require full access to Salesforce, like those in **Sales** and **Marketing** roles.
+
+#### Step 2: Assign Profiles
+While still on the user record, assign the **Sales Profile** or **Marketing Profile** (created earlier) in the **Profile** field.
+  
+#### Step 3: Save and Review Access
+Save your changes, then log in as each user (or use the **Login As** feature) to verify that permissions and restrictions are working as expected.
+
+By following these steps, you can ensure the correct restrictions are in place for orders post-payment and provide your Marketing and Sales teams with appropriate roles, permissions, and licenses. Let me know if you'd like further clarification on any of the steps!Here's how to address each of your Salesforce reporting and dashboard requirements, including setting up monthly reports, comparative summaries, sales rep rankings, tax calculations, product sales, and dashboards.
 
 1. Order Report by Each Month
 Steps:
