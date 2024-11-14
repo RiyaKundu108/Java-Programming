@@ -1,4 +1,218 @@
+10.	Once Order has been placed and payment(Payment received checkbox on Order) has been received, it should not be editable for Sales Rep.
+11.	Users
+Marketing – Works on promotions i.e Campaigns
+Sales – Who create Orders and generate Invoices
+Assign appropriate license  full step by step process
+
+ChatGPT said:
 To meet these requirements, you’ll need to set up Salesforce permissions and licenses to control who can edit orders and manage user roles for your Marketing and Sales teams. Here's a step-by-step guide:
+
+1. Restricting Edit Access to Orders After Payment Is Received
+To ensure that an Order cannot be edited by Sales Reps once payment has been received, follow these steps:
+
+Step 1: Create a Validation Rule on the Order Object
+Go to Setup in Salesforce.
+
+In the Object Manager, find and select Order.
+
+Go to Validation Rules and click New.
+
+Name the rule (e.g., Prevent_Order_Edit_After_Payment).
+
+Enter the following formula to check if the Payment Received checkbox is checked and the current user is a Sales Rep:
+
+AND(
+    ISCHANGED(Payment_Received__c),
+    $Profile.Name = "Sales Rep",
+    Payment_Received__c = TRUE
+)
+In the Error Message section, add a user-friendly error message (e.g., "You cannot edit this Order because payment has been received.").
+
+Click Save.
+
+This validation rule will prevent Sales Reps from editing Orders once the payment has been received.
+
+Step 2: Update Field-Level Security if Necessary
+Make sure that the Payment Received checkbox has restricted edit access for Sales Reps if needed. You can set this under Field-Level Security in the Order object fields.
+
+2. Assigning User Roles and Permissions for Marketing and Sales Teams
+Step 1: Define Roles in the Role Hierarchy
+Go to Setup and search for Roles.
+Click on Set Up Roles and define roles based on your organizational hierarchy. Common roles might include:
+Marketing
+Sales
+For each role, click Add Role and fill out details, assigning each role to the appropriate level in the hierarchy.
+Assign users to these roles based on their job functions.
+Step 2: Create Profiles for Marketing and Sales
+Go to Setup and search for Profiles.
+Clone existing profiles or create new ones tailored to each team:
+Marketing Profile (for managing Campaigns)
+Sales Profile (for managing Orders and generating Invoices)
+Adjust object permissions on each profile:
+For the Marketing Profile, enable Read, Create, and Edit permissions on Campaigns.
+For the Sales Profile, enable Read, Create, Edit permissions on Orders (without Delete) and Invoices.
+Step 3: Update Field Permissions
+Go to each object (e.g., Order and Invoice), and for each profile, set the required field-level security.
+Ensure that Sales Reps have Read-only access to certain fields (like Payment Received on Orders) as needed.
+3. Assign Licenses to Users
+Follow these steps to assign appropriate licenses to the Marketing and Sales teams.
+
+Step 1: Assign Licenses in Salesforce
+Go to Setup and search for Users.
+Select the user you want to assign a license to and click Edit.
+In the User License field, select the correct license type for each user:
+Salesforce License: Assign this license to users who require full access to Salesforce, like those in Sales and Marketing roles.
+Step 2: Assign Profiles
+While still on the user record, assign the Sales Profile or Marketing Profile (created earlier) in the Profile field.
+
+Step 3: Save and Review Access
+Save your changes, then log in as each user (or use the Login As feature) to verify that permissions and restrictions are working as expected.
+
+By following these steps, you can ensure the correct restrictions are in place for orders post-payment and provide your Marketing and Sales teams with appropriate roles, permissions, and licenses. Let me know if you'd like further clarification on any of the steps!
+
+
+
+
+
+
+You said:
+ 1.	Generate Invoice for the order placed from within SFDC - generate PDF using VF. Show the following details:
+•	Invoice Number
+•	Customer Name
+•	Store Name
+•	Store Address
+•	Payment Mode
+•	Total Amount Payable
+•	Product Code
+•	Product Description
+•	Quantity
+•	Unit Price
+•	Discount (Shouldn’t be more than 10% else send the order for approval)
+•	GST – Components CGST, SGST and IGST. If customer bill to not MH, use IGST. Else use CGST and IGST, split the GST rates in 50:50 ratio. The GST rates for Garments is 5%. If garments amount is greater than 1000, then GST rate is 12%. For Jewellery, the GST rate is 3%.  Show only relevant GST fields. – Use Product Category Field (values – Garments, Jewellery). Create Custom formula fields for CGST, SGST and IGST.
+•	Net Price = (Unit Price – Discount) * quantity + applicable taxes
+ChatGPT said:
+To generate an invoice PDF in Salesforce that includes these details, follow these steps:
+
+1. Set Up Custom Fields on the Order and Product Objects
+Step 1: Create Custom Fields on Order (for Invoice details)
+Invoice Number: Create a Text field.
+Customer Name: A lookup or formula field that pulls from the Account object or Contact based on your structure.
+Store Name and Store Address: Store these as Text fields or retrieve them from related records if applicable.
+Payment Mode: Create a Picklist field (e.g., Cash, Credit, Debit).
+Total Amount Payable: Create a Currency field.
+Step 2: Create Custom Fields on Product (for Invoice Line Item details)
+Product Code: Create a Text field.
+Product Description: Create a Text Area field.
+Quantity: Create a Number field.
+Unit Price: Create a Currency field.
+Discount: Create a Percentage field. Set a validation rule to ensure it doesn’t exceed 10% for Sales Reps, else send it for approval.
+Step 3: Set Up GST Fields (for tax calculations)
+Product Category: Create a Picklist field with values such as “Garments” and “Jewellery.”
+CGST, SGST, and IGST: Create custom formula fields for these taxes, with logic based on product category and location.
+GST Calculation Logic for Formula Fields
+CGST:
+
+IF(
+    AND(Product_Category__c = "Garments", Total_Amount__c <= 1000),
+    (Unit_Price__c * Quantity__c * 0.025),
+    IF(
+        Product_Category__c = "Garments",
+        (Unit_Price__c * Quantity__c * 0.06),
+        IF(
+            Product_Category__c = "Jewellery",
+            (Unit_Price__c * Quantity__c * 0.015),
+            0
+        )
+    )
+)
+SGST: Use the same formula as CGST for symmetry.
+
+IGST:
+
+IF(
+    Product_Category__c = "Garments" && Billing_State__c != "MH" && Total_Amount__c <= 1000,
+    Unit_Price__c * Quantity__c * 0.05,
+    IF(
+        Product_Category__c = "Garments" && Billing_State__c != "MH",
+        Unit_Price__c * Quantity__c * 0.12,
+        IF(
+            Product_Category__c = "Jewellery" && Billing_State__c != "MH",
+            Unit_Price__c * Quantity__c * 0.03,
+            0
+        )
+    )
+)
+These formulas calculate GST based on the product category and billing state.
+
+2. Create a Visualforce Page for the PDF Invoice
+Go to Setup → Visualforce Pages → New.
+
+Name the page (e.g., InvoicePDF), and in the editor, add the following code:
+
+<apex:page standardController="Order" renderAs="pdf">
+    <h1>Invoice</h1>
+    <h2>Invoice Number: {!Order.Invoice_Number__c}</h2>
+    <p>Customer Name: {!Order.Customer_Name__c}</p>
+    <p>Store Name: {!Order.Store_Name__c}</p>
+    <p>Store Address: {!Order.Store_Address__c}</p>
+    <p>Payment Mode: {!Order.Payment_Mode__c}</p>
+    <p>Total Amount Payable: {!Order.Total_Amount_Payable__c}</p>
+    
+    <table border="1">
+        <tr>
+            <th>Product Code</th>
+            <th>Description</th>
+            <th>Quantity</th>
+            <th>Unit Price</th>
+            <th>Discount</th>
+            <th>CGST</th>
+            <th>SGST</th>
+            <th>IGST</th>
+            <th>Net Price</th>
+        </tr>
+        <apex:repeat value="{!Order.OrderItems}" var="item">
+            <tr>
+                <td>{!item.ProductCode}</td>
+                <td>{!item.Description}</td>
+                <td>{!item.Quantity__c}</td>
+                <td>{!item.Unit_Price__c}</td>
+                <td>{!item.Discount__c}</td>
+                <td>{!item.CGST__c}</td>
+                <td>{!item.SGST__c}</td>
+                <td>{!item.IGST__c}</td>
+                <td>{!item.Net_Price__c}</td>
+            </tr>
+        </apex:repeat>
+    </table>
+</apex:page>
+Explanation:
+
+This Visualforce page uses the renderAs="pdf" attribute to render the page as a downloadable PDF.
+It iterates over OrderItems (line items) on the Order and displays relevant fields.
+The formula fields for CGST, SGST, and IGST calculate GST based on product category and customer location.
+3. Create an Approval Process for Orders with Discounts Above 10%
+Go to Setup → Approval Processes → New Approval Process.
+Select the Order object.
+Define the entry criteria as Discount__c > 10%.
+Add steps for approval by managers or designated approvers.
+Set final approval/rejection actions, such as sending notifications to the Sales Rep.
+4. Add a Custom Button on the Order to Generate PDF
+Go to Setup → Object Manager → Order → Buttons, Links, and Actions.
+
+Click New Button or Link and name it (e.g., Generate Invoice PDF).
+
+Set the display type to Detail Page Button.
+
+In the formula editor, use the following URL to redirect to the Visualforce page:
+
+/apex/InvoicePDF?id={!Order.Id}
+Add the button to the Order page layout.
+
+5. Test the Solution
+Place an Order with a Product from different categories (Garments and Jewellery) and a high and low price to check GST calculation.
+Click Generate Invoice PDF on the Order to ensure the PDF generates as expected.
+Verify that Orders with discounts over 10% go into the approval process and are handled appropriately.
+This setup should meet your requirements for generating and customizing invoices. Let me know if you need further help with any of these steps!To meet these requirements, you’ll need to set up Salesforce permissions and licenses to control who can edit orders and manage user roles for your Marketing and Sales teams. Here's a step-by-step guide:
 
 ### 1. Restricting Edit Access to Orders After Payment Is Received
 To ensure that an Order cannot be edited by Sales Reps once payment has been received, follow these steps:
